@@ -97,3 +97,43 @@ func Navigate(start, goal *Hex, obstacles []ContextualObstacle) ([]*Hex, error) 
 	}
 	return nil, fmt.Errorf("no path available from %d,%d to %d,%d", start.M, start.N, goal.M, goal.N)
 }
+
+/*
+This Navigation does not support large characters that occupy more than one
+hex at a time.
+
+I think the interface should go from
+
+	func Navigate(start, goal *Hex, obstacles []ContextualObstacle) ([]*Hex, error) {
+
+to
+
+	func Navigate(start []*Hex, m, n int, obstacles []ContextualObstacle) ([]*Hex, error) {
+
+where start now accepts a slice of hexes that the character occupies, and m,n
+represent the goal by the number of hexes to offset the each starting hex by.
+
+I wonder what this means for detecting an M,N offset in terms of translating
+mouse coordinates?
+
+Potential issues:
+
+- We need to check whether any obstacle is only blocked by the character we
+are pathfinding *for*, and would not be an obstacle if the character was
+moving.
+
+Another option to explore would be to codify small, medium and large sized
+units, and have separate coordinate systems for each. This might be easier to
+implement side-by-side with the existing logic, i.e:
+
+	func Navigate(start, goal *Hex4, obstacles []ContextualObstacle) ([]*Hex4, error) {
+	func Navigate(start, goal *Hex7, obstacles []ContextualObstacle) ([]*Hex7, error) {
+
+Where Hex4 is something like
+
+type Hex4 struct {
+	O,P int
+	[]*Hex hexes
+	[]*Hex4 neighbors
+}
+*/

@@ -130,7 +130,7 @@ func addTrees(mgr *ecs.World, b *geom.Field) {
 		for m := 0; m < M; m++ {
 			i := m + n*M
 			h := b.Get(m, n)
-			if i == 1 || i%11 == 1 || i%17 == 1 || i%13 == 1 {
+			if i == 1 || i%17 == 1 || i%13 == 1 {
 				e := mgr.NewEntity()
 				mgr.AddComponent(e, &game.Sprite{
 					Texture: "Untitled.png",
@@ -192,9 +192,11 @@ func setup(w, h int) (*system, error) {
 	})
 
 	// Create an Actor that is controlled by mouse clicks
-	start := board.Get(0, 0)
+	start := board.Get4(3, 8)
 	s.actor = mgr.NewEntity()
-	mgr.AddComponent(s.actor, &game.Actor{})
+	mgr.AddComponent(s.actor, &game.Actor{
+		Size: game.MEDIUM,
+	})
 	mgr.AddComponent(s.actor, &game.Facer{Face: geom.S})
 	mgr.AddComponent(s.actor, &game.Sprite{
 		Texture: "Untitled.png",
@@ -214,8 +216,8 @@ func setup(w, h int) (*system, error) {
 		Y: -16,
 	})
 	mgr.AddComponent(s.actor, &game.Obstacle{
-		M:            0,
-		N:            0,
+		M:            3,
+		N:            8,
 		ObstacleType: game.ACTOR,
 	})
 
@@ -259,7 +261,7 @@ func (s *system) run(screen *ebiten.Image) error {
 	x, y = int(float64(x)-1024/2/zoom), int(float64(y)-768/2/zoom)
 
 	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		a := s.mgr.Component(s.actor, "Actor").(*game.Actor)
+		// a := s.mgr.Component(s.actor, "Actor").(*game.Actor)
 
 		var obstacles []geom.ContextualObstacle
 		for _, e := range s.mgr.Get([]string{"Obstacle"}) {
@@ -291,6 +293,59 @@ func (s *system) run(screen *ebiten.Image) error {
 				// 	mgr.AddComponent(actor, &game.Mover{
 				// 		Moves: steps,
 				// 	})
+				// if win.JustPressed(pixelgl.MouseButtonLeft) {
+				// 	p := win.MousePosition()
+				// 	p = camera.View().Unproject(p)
+
+				// 	// faiface/pixel inverts the Y coordinate
+				// 	p.Y = -p.Y
+
+				// 	pos := mgr.Component(actor, "Position").(*game.Position)
+
+				// 	var obstacles []geom.ContextualObstacle
+				// 	for _, e := range mgr.Get([]string{"Obstacle"}) {
+				// 		// An Actor is not an obstacle to itself.
+				// 		if e == actor {
+				// 			continue
+				// 		}
+
+				// 		obstacle := mgr.Component(e, "Obstacle").(*game.Obstacle)
+				// 		hex := s.board.Get(obstacle.M, obstacle.N)
+				// 		if hex == nil {
+				// 			continue
+				// 		}
+
+				// 		// Translate the Obstacles into ContextualObstacles based on
+				// 		// how much of an Obstacle this is to the Mover in this context.
+				// 		obstacles = append(obstacles, geom.ContextualObstacle{
+				// 			M:    obstacle.M,
+				// 			N:    obstacle.N,
+				// 			Cost: math.Inf(0), // just pretend these all are total obstacles for now
+				// 		})
+				// 	}
+
+				// 	a := mgr.Component(actor, "Actor").(*game.Actor)
+				// 	var steps []geom.Positioned
+				// 	var err error
+
+				// 	switch a.Size {
+				// 	case game.SMALL:
+				// 		steps, err = geom.Navigate(board.At(int(pos.Center.X), int(pos.Center.Y)), board.At(int(p.X), int(p.Y)), obstacles)
+				// 	case game.MEDIUM:
+				// 		steps, err = geom.Navigate4(board.At4(int(pos.Center.X), int(pos.Center.Y)), board.At4(int(p.X), int(p.Y)), obstacles)
+				// 	case game.LARGE:
+				// 		steps, err = geom.Navigate7(board.At7(int(pos.Center.X), int(pos.Center.Y)), board.At7(int(p.X), int(p.Y)), obstacles)
+				// 	}
+				// 	if err != nil {
+				// 		fmt.Printf("no path there: %v\n", err)
+				// 	} else {
+				// 		m := game.Mover{}
+
+				// 		for _, step := range steps {
+				// 			m.Moves = append(m.Moves, game.Waypoint{X: step.X(), Y: step.Y()})
+				// 		}
+
+				// 		mgr.AddComponent(actor, &m)
 			}
 
 			// Translate the Obstacles into ContextualObstacles based on
@@ -302,13 +357,49 @@ func (s *system) run(screen *ebiten.Image) error {
 			})
 		}
 
-		steps, err := geom.Navigate(s.board.Get(a.M, a.N), s.board.At(x, y), obstacles)
+		a := s.mgr.Component(s.actor, "Actor").(*game.Actor)
+		pos := s.mgr.Component(s.actor, "Position").(*game.Position)
+		var steps []geom.Positioned
+		var err error
+		switch a.Size {
+		case game.SMALL:
+			steps, err = geom.Navigate(s.board.At(int(pos.Center.X), int(pos.Center.Y)), s.board.At(int(x), int(y)), obstacles)
+		case game.MEDIUM:
+			steps, err = geom.Navigate4(s.board.At4(int(pos.Center.X), int(pos.Center.Y)), s.board.At4(int(x), int(y)), obstacles)
+		case game.LARGE:
+			steps, err = geom.Navigate7(s.board.At7(int(pos.Center.X), int(pos.Center.Y)), s.board.At7(int(x), int(y)), obstacles)
+		}
+		// steps, err := geom.Navigate(s.board.Get(a.M, a.N), s.board.At(x, y), obstacles)
 		if err != nil {
 			fmt.Printf("no path there: %v\n", err)
 		} else {
-			s.mgr.AddComponent(s.actor, &game.Mover{
-				Moves: steps,
-			})
+			m := game.Mover{}
+
+			for _, step := range steps {
+				m.Moves = append(m.Moves, game.Waypoint{X: step.X(), Y: step.Y()})
+			}
+
+			s.mgr.AddComponent(s.actor, &m)
+
+			// // A Cursor that follows the mouse...
+			// p := win.MousePosition()
+			// if p != lastMouse {
+			// 	c, ok := mgr.Component(cursor, "Position").(*game.Position)
+			// 	if ok {
+			// 		mgr.RemoveComponent(cursor, c)
+			// 	}
+			// 	p = camera.View().Unproject(p)
+			// 	p.Y = -p.Y
+			// 	if h4 := s.board.At4(int(p.X), int(p.Y)); h4 != nil {
+			// 		mgr.AddComponent(cursor, &game.Position{
+			// 			Center: game.Center{
+			// 				X: h4.X(),
+			// 				Y: h4.Y(),
+			// 			},
+			// 			Layer: 2,
+			// 		})
+			// 	}
+			// 	lastMouse = win.MousePosition()
 		}
 	}
 

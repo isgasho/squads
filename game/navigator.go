@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/griffithsh/squads/geom"
@@ -23,7 +22,6 @@ func (nav *Navigator) Update(mgr *ecs.World, elapsed time.Duration) {
 		pos := mgr.Component(e, "Position").(*Position)
 
 		if len(mover.Moves) > 0 && mover.Moves[0].X == pos.Center.X && mover.Moves[0].Y == pos.Center.X {
-			fmt.Printf("first move\n")
 			// Pop the first move, because it's the current position.
 			mover.Moves = mover.Moves[1:]
 
@@ -44,7 +42,6 @@ func (nav *Navigator) Update(mgr *ecs.World, elapsed time.Duration) {
 			}
 
 		} else if mover.Elapsed >= mover.Duration {
-			fmt.Printf("\nend of move: %v versus %v\n", pos.Center, mover.Moves[0])
 			// End-of-move tasks...
 			dest := mover.Moves[0]
 			pos.Center.X = float64(dest.X)
@@ -64,7 +61,6 @@ func (nav *Navigator) Update(mgr *ecs.World, elapsed time.Duration) {
 				mgr.RemoveComponent(e, mover)
 				continue
 			}
-			fmt.Printf("\nnext move\n")
 
 			// The last few moves are slower than normal.
 			switch len(mover.Moves) {
@@ -92,7 +88,6 @@ func (nav *Navigator) Update(mgr *ecs.World, elapsed time.Duration) {
 		} else {
 			// Traversing ....
 			mover.Elapsed += elapsed
-			fmt.Printf(".")
 
 			pos.Center.X = mover.Elapsed.Seconds()/mover.Duration.Seconds()*mover.dx + mover.x
 			pos.Center.Y = mover.Elapsed.Seconds()/mover.Duration.Seconds()*mover.dy + mover.y
